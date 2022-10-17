@@ -1,6 +1,7 @@
 package com.example.notesultimate.ui.screens.add_edit_notes
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,26 +54,30 @@ fun AddEditScreen(
         currentNote?.content ?: ""
     ) }
 
-
+    val context = LocalContext.current
     val scaffoldState = rememberScaffoldState()
     Scaffold(
         scaffoldState = scaffoldState,
         floatingActionButton = {
-            FloatingActionButton(onClick = {
+            FloatingActionButton(
+                onClick = {
                 scope.launch {
-
+                    if(title.value.isEmpty() || content.value.isEmpty()){
+                        Toast.makeText(context, "Title or content cant be empty", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
                     if(currentNote==null){
                         val note =  Note(
-                            title = title.value,
-                            content = content.value,
+                            title = title.value.trim(),
+                            content = content.value.trim(),
                             color = noteBackground.value.toArgb()
                         )
                         noteViewModel.onEvent(NotesEvent.InsertNote(note))
                     }
 
                     currentNote?.let {
-                        it.title = title.value
-                        it.content = content.value
+                        it.title = title.value.trim()
+                        it.content = content.value.trim()
                         it.color = noteBackground.value.toArgb()
                         noteViewModel.onEvent(NotesEvent.UpdateNote(it))
                     }

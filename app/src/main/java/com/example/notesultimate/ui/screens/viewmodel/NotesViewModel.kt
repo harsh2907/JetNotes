@@ -1,5 +1,6 @@
 package com.example.notesultimate.ui.screens.viewmodel
 
+import androidx.compose.ui.text.toLowerCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesultimate.domain.model.Note
@@ -10,14 +11,9 @@ import com.example.notesultimate.domain.util.OrderType
 import com.example.notesultimate.ui.util.NotesEvent
 import com.example.notesultimate.ui.util.NotesState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,6 +35,9 @@ class NotesViewModel @Inject constructor(
         getNotes(NoteOrder.Date(OrderType.Descending))
     }
 
+    fun setNotes(notes:List<Note>){
+        _state.value = state.value.copy(notes = notes)
+    }
     fun setNote(note: Note?) {
         _note.value = note
     }
@@ -81,11 +80,27 @@ class NotesViewModel @Inject constructor(
         }
     }
 
-    private fun getNotes(noteOrder: NoteOrder) {
+    fun getNotes(noteOrder: NoteOrder) {
         getNotesJob?.cancel()
         getNotesJob = noteUseCases.getNotes(noteOrder).onEach { notes ->
             _state.value = state.value.copy(notes = notes, noteOrder = noteOrder)
         }.launchIn(viewModelScope)
     }
 
+
+
+     fun searchNotes(query: String) {
+         val filteredList = buildList {
+             state.value.notes.forEach { note->
+                 if(note.title
+                         .lowercase()
+                         .contains(query.lowercase()) || note.content.lowercase()
+                         .contains(query.lowercase())
+                 ){
+                     add(note)
+                 }
+             }
+         }
+         setNotes(filteredList)
+    }
 }

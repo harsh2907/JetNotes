@@ -30,12 +30,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.notesultimate.domain.model.Note
+import com.example.notesultimate.domain.util.NoteOrder
+import com.example.notesultimate.domain.util.OrderType
 import com.example.notesultimate.ui.screens.navigation.Screens
 import com.example.notesultimate.ui.screens.viewmodel.NotesViewModel
 import com.example.notesultimate.ui.theme.NotesUltimateTheme
 import com.example.notesultimate.ui.theme.QuickSand
 import com.example.notesultimate.ui.util.NotesEvent
 import com.example.notesultimate.ui.util.Previews
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 
@@ -86,7 +89,7 @@ fun MainScreen(
             }
         },
         topBar = {
-            TopBarMainScreen()
+            TopBarMainScreen(viewModel)
         }
 
     )
@@ -98,12 +101,12 @@ fun MainScreen(
                 NoteItem(note = notes[index], onDelete = {
                     viewModel.onEvent(NotesEvent.DeleteNote(it))
                     scope.launch{
-                     val result =   scaffoldState.snackbarHostState.showSnackbar(
+                      val result =   scaffoldState.snackbarHostState.showSnackbar(
                             "Note deleted successfully",
                             actionLabel = "Undo",
                             duration = SnackbarDuration.Long
                         )
-                        if(result == SnackbarResult.ActionPerformed){
+                       if(result == SnackbarResult.ActionPerformed){
                             viewModel.onEvent(NotesEvent.RestoreNote)
                         }
                     }
@@ -119,9 +122,13 @@ fun MainScreen(
 
 
 @Composable
-fun TopBarMainScreen() {
-    var searchQuery by remember { mutableStateOf("") }
+fun TopBarMainScreen(
+    viewModel: NotesViewModel
+) {
+    var searchQuery by remember{ mutableStateOf("") }
     val showSearchBar = rememberSaveable { mutableStateOf(false) }
+    val notes = viewModel.state.collectAsState().value.notes
+    val scope = rememberCoroutineScope()
 
     Row(
         Modifier
@@ -136,7 +143,13 @@ fun TopBarMainScreen() {
             text = searchQuery,
             isSearchActive = showSearchBar.value,
             onTextChange = {
-                searchQuery = it
+                searchQuery= it
+
+                if(searchQuery.isNotEmpty()){
+                    viewModel.searchNotes(searchQuery.trim())
+                }
+                else
+                    viewModel.getNotes(NoteOrder.Date(OrderType.Descending))
             },
             onSearchClick = {
                 showSearchBar.value = !showSearchBar.value
